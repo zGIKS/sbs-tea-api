@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
 from datetime import date, datetime
-import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import requests
 from bs4 import BeautifulSoup
+
+from ..domain.entities import CurrencyRates, RateRow, ScrapeResult
 
 BASE_URL = "https://www.sbs.gob.pe/app/pp/EstadisticasSAEEPortal/Paginas/TIActivaTipoCreditoEmpresa.aspx"
 DEFAULT_HEADERS = {
@@ -14,63 +15,6 @@ DEFAULT_HEADERS = {
     "Accept-Language": "es-PE,es;q=0.9,en;q=0.8",
 }
 MAX_ATTEMPTS = 5
-
-
-@dataclass
-class RateRow:
-    credit_type: str
-    rates: Dict[str, Optional[float]]
-
-
-@dataclass
-class CurrencyRates:
-    currency: str
-    banks: List[str]
-    rows: List[RateRow]
-
-
-@dataclass
-class ScrapeResult:
-    data_date: date
-    note: Optional[str]
-    currencies: Dict[str, CurrencyRates]
-
-    def to_dict(
-        self, currency_filter: Optional[List[str]] = None, credit_filter: Optional[str] = None
-    ) -> Dict:
-        chosen = currency_filter or list(self.currencies.keys())
-        credit_filter_lower = credit_filter.lower() if credit_filter else None
-
-        def should_keep(row: RateRow) -> bool:
-            if not credit_filter_lower:
-                return True
-            return credit_filter_lower in row.credit_type.lower()
-
-        currencies = []
-        for code in chosen:
-            if code not in self.currencies:
-                continue
-            currency = self.currencies[code]
-            filtered_rows = [row for row in currency.rows if should_keep(row)]
-            currencies.append(
-                {
-                    "code": code,
-                    "banks": currency.banks,
-                    "rows": [
-                        {
-                            "credit_type": row.credit_type,
-                            "rates": row.rates,
-                        }
-                        for row in filtered_rows
-                    ],
-                }
-            )
-
-        return {
-            "date": self.data_date.isoformat(),
-            "note": self.note,
-            "currencies": currencies,
-        }
 
 
 class SbsTeaScraper:
@@ -154,12 +98,23 @@ class SbsTeaScraper:
         if target_date:
             display_date = target_date.strftime("%d/%m/%Y")
             iso_date = target_date.strftime("%Y-%m-%d")
+            telerik_date = f"{iso_date}-00-00-00"
 
             payload["ctl00$cphContent$rdpDate"] = iso_date
             payload["ctl00$cphContent$rdpDate$dateInput"] = display_date
             payload["ctl00_cphContent_rdpDate_calendar_AD"] = (
                 f"[[1000,1,1],[2099,12,30],[{target_date.year},{target_date.month},{target_date.day}]]"
             )
+            # ClientState JSON requerido por Telerik RadDatePicker
+            payload["ctl00_cphContent_rdpDate_dateInput_ClientState"] = json.dumps({
+                "enabled": True,
+                "emptyMessage": "",
+                "validationText": telerik_date,
+                "valueAsString": telerik_date,
+                "minDateStr": "1000-01-01-00-00-00",
+                "maxDateStr": "2099-12-30-00-00-00",
+                "lastSetTextBoxValue": display_date,
+            })
 
         payload["__EVENTTARGET"] = payload.get("__EVENTTARGET", "")
         payload["__EVENTARGUMENT"] = payload.get("__EVENTARGUMENT", "")

@@ -7,4 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "beautifulsoup4>=4.14.2",
     "requests>=2.32.5",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "scalar-fastapi>=1.0.0",
 ]

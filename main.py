@@ -3,7 +3,9 @@ import json
 from datetime import datetime, date
 from typing import Iterable, List
 
-from sbs_tea.scraper import SbsTeaScraper, ScrapeResult
+from sbs_tea.application import ScrapeService
+from sbs_tea.domain import ScrapeResult
+from sbs_tea.infrastructure import SbsTeaScraper
 
 
 def _parse_date_arg(value: str) -> date:
@@ -49,7 +51,13 @@ def _print_table(result: ScrapeResult, currencies: Iterable[str], credit_filter:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Scraping de TEA bancarias desde la web de la SBS (tip=B)."
+        description="Herramienta para obtener TEA bancarias desde la SBS. Modo API inicia servidor FastAPI; modo CLI ejecuta scraping directo."
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["api", "cli"],
+        default="api",
+        help="Modo de ejecución: api (servidor FastAPI) o cli (scraping directo).",
     )
     parser.add_argument(
         "--date",
@@ -66,7 +74,7 @@ def main() -> None:
         "--format",
         choices=["json", "table"],
         default="json",
-        help="Formato de salida.",
+        help="Formato de salida (solo en modo cli).",
     )
     parser.add_argument(
         "--filter",
@@ -77,27 +85,35 @@ def main() -> None:
     parser.add_argument(
         "--only-date",
         action="store_true",
-        help="Imprime solo la fecha detectada (ISO) y termina.",
+        help="Imprime solo la fecha detectada (ISO) y termina (solo en modo cli).",
     )
 
     args = parser.parse_args()
-    scraper = SbsTeaScraper()
-    result = scraper.fetch_rates(args.date)
 
-    if args.only_date:
-        print(result.data_date.isoformat())
-        return
-
-    currency_map = {"mn": ["MN"], "usd": ["USD"], "both": ["MN", "USD"]}
-    selected_currencies: List[str] = currency_map[args.currency]
-
-    if args.format == "json":
-        payload = result.to_dict(
-            currency_filter=selected_currencies, credit_filter=args.credit_filter or None
-        )
-        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    if args.mode == "api":
+        import uvicorn
+        print("Iniciando servidor FastAPI...")
+        print("Documentación disponible en: http://localhost:8082/docs")
+        print("API endpoints: http://localhost:8082/rates, http://localhost:8082/date")
+        uvicorn.run("api:app", host="0.0.0.0", port=8082, reload=True)
     else:
-        _print_table(result, selected_currencies, args.credit_filter)
+        service = ScrapeService(SbsTeaScraper())
+        result = service.fetch_rates(args.date)
+
+        if args.only_date:
+            print(result.data_date.isoformat())
+            return
+
+        currency_map = {"mn": ["MN"], "usd": ["USD"], "both": ["MN", "USD"]}
+        selected_currencies: List[str] = currency_map[args.currency]
+
+        if args.format == "json":
+            payload = result.to_dict(
+                currency_filter=selected_currencies, credit_filter=args.credit_filter or None
+            )
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            _print_table(result, selected_currencies, args.credit_filter)
 
 
 if __name__ == "__main__":
