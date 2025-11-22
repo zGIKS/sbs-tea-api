@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import date, datetime
 from typing import Dict, List, Optional
 
@@ -97,12 +98,23 @@ class SbsTeaScraper:
         if target_date:
             display_date = target_date.strftime("%d/%m/%Y")
             iso_date = target_date.strftime("%Y-%m-%d")
+            telerik_date = f"{iso_date}-00-00-00"
 
             payload["ctl00$cphContent$rdpDate"] = iso_date
             payload["ctl00$cphContent$rdpDate$dateInput"] = display_date
             payload["ctl00_cphContent_rdpDate_calendar_AD"] = (
                 f"[[1000,1,1],[2099,12,30],[{target_date.year},{target_date.month},{target_date.day}]]"
             )
+            # ClientState JSON requerido por Telerik RadDatePicker
+            payload["ctl00_cphContent_rdpDate_dateInput_ClientState"] = json.dumps({
+                "enabled": True,
+                "emptyMessage": "",
+                "validationText": telerik_date,
+                "valueAsString": telerik_date,
+                "minDateStr": "1000-01-01-00-00-00",
+                "maxDateStr": "2099-12-30-00-00-00",
+                "lastSetTextBoxValue": display_date,
+            })
 
         payload["__EVENTTARGET"] = payload.get("__EVENTTARGET", "")
         payload["__EVENTARGUMENT"] = payload.get("__EVENTARGUMENT", "")
