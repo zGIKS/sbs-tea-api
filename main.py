@@ -93,9 +93,9 @@ def main() -> None:
     if args.mode == "api":
         import uvicorn
         print("Iniciando servidor FastAPI...")
-        print("Documentación disponible en: http://localhost:8000/docs")
-        print("API endpoints: http://localhost:8000/rates, http://localhost:8000/date")
-        uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
+        print("Documentación disponible en: http://localhost:8082/docs")
+        print("API endpoints: http://localhost:8082/rates, http://localhost:8082/date")
+        uvicorn.run("api:app", host="0.0.0.0", port=8082, reload=True)
     else:
         service = ScrapeService(SbsTeaScraper())
         result = service.fetch_rates(args.date)
