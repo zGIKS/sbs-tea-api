@@ -64,7 +64,13 @@ def get_rates(
 
     selected_currencies = currency_map[currency]
 
-    result = service.fetch_rates(target_date)
+    try:
+        result = service.fetch_rates(target_date)
+    except ValueError as e:
+        # La SBS devuelve una página sin tablas cuando la fecha no tiene información.
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e))
 
     return result.to_dict(
         currency_filter=selected_currencies,

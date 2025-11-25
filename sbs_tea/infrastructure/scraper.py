@@ -32,6 +32,10 @@ class SbsTeaScraper:
             current_date = self._extract_date(html)
 
         soup = BeautifulSoup(html, "html.parser")
+        no_data_message = self._detect_no_data_message(soup)
+        if no_data_message:
+            raise ValueError(no_data_message)
+
         data_date = current_date or date.today()
         note = self._extract_note(soup)
 
@@ -150,6 +154,15 @@ class SbsTeaScraper:
         if not note_body:
             return None
         return f"{marker} {note_body}"
+
+    @staticmethod
+    def _detect_no_data_message(soup: BeautifulSoup) -> Optional[str]:
+        panel = soup.find(id="ctl00_cphContent_pnlMensaje")
+        if panel:
+            text = panel.get_text(" ", strip=True)
+            if text:
+                return text
+        return None
 
     def _parse_grid(self, soup: BeautifulSoup, grid_id: str, currency_code: str) -> CurrencyRates:
         grid = soup.find("div", id=grid_id)
