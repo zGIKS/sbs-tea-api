@@ -2,6 +2,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
 
 from sbs_tea.application import ScrapeService
@@ -21,6 +22,15 @@ app.add_route("/docs", get_scalar_api_reference(openapi_url=app.openapi_url), in
 # Instanciar el servicio
 service = ScrapeService(SbsTeaScraper())
 
+# Permitir llamadas desde el front local (Vite y derivados).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 def parse_date(date_str: str) -> date:
     if not date_str:
@@ -35,7 +45,11 @@ def parse_date(date_str: str) -> date:
 
 @app.get("/rates")
 def get_rates(
-    date_param: str = Query(..., description="Fecha a consultar (YYYY-MM-DD o DD/MM/YYYY). Obligatoria."),
+    date_param: str = Query(
+        ...,
+        alias="date",
+        description="Fecha a consultar (YYYY-MM-DD o DD/MM/YYYY). Obligatoria.",
+    ),
     currency: str = Query("both", description="Moneda: mn, usd o both."),
     credit_filter: Optional[str] = Query(None, description="Filtro por tipo de crédito."),
 ):
