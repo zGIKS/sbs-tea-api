@@ -21,20 +21,20 @@ uv run python main.py --mode cli --format json
 
 #### Modo API
 
-Inicia servidor FastAPI en `http://localhost:8000`.
+Inicia servidor FastAPI en `http://localhost:8182`.
 
-- Documentación: `http://localhost:8000/docs`
-- Endpoints: `GET /rates`, `GET /date`
-- `/rates` exige `date=YYYY-MM-DD` (o `DD/MM/YYYY`) y permite `currency=mn|usd|both` y `credit_filter=<texto>`.
+- Documentación (Scalar): `http://localhost:8182/docs`
+- Endpoints: `GET /api/v1/rates`, `GET /api/v1/date`
+- `/api/v1/rates` exige `date=YYYY-MM-DD` (o `DD/MM/YYYY`) y permite `currency=mn|usd|both` y `credit_filter=<texto>`.
 
 Ejemplos:
 
 ```bash
 # Obtener tasas en JSON
-curl "http://localhost:8000/rates?date=2024-06-30"
+curl "http://localhost:8182/api/v1/rates?date=2024-06-30"
 
 # Filtrar por moneda y fecha
-curl "http://localhost:8000/rates?currency=mn&date=2024-06-30"
+curl "http://localhost:8182/api/v1/rates?currency=mn&date=2024-06-30"
 ```
 
 #### Modo CLI

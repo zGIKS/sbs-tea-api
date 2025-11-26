@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import APIRouter, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
 
@@ -12,15 +12,16 @@ app = FastAPI(
     title="SBS TEA API",
     description="API para obtener tasas TEA bancarias desde la SBS",
     version="0.1.0",
-    docs_url=None,  # Desactiva Swagger UI
+    docs_url=None,
     redoc_url=None,
 )
 
-# Reemplazar /docs con Scalar para documentación
+# Documentación con Scalar
 app.add_route("/docs", get_scalar_api_reference(openapi_url=app.openapi_url), include_in_schema=False)
 
 # Instanciar el servicio
 service = ScrapeService(SbsTeaScraper())
+router = APIRouter(prefix="/api/v1")
 
 # Permitir llamadas desde el front local (Vite y derivados).
 app.add_middleware(
@@ -43,7 +44,7 @@ def parse_date(date_str: str) -> date:
     raise ValueError("Formato de fecha inválido. Usa YYYY-MM-DD o DD/MM/YYYY.")
 
 
-@app.get("/rates")
+@router.get("/rates")
 def get_rates(
     date_param: str = Query(
         ...,
@@ -78,8 +79,11 @@ def get_rates(
     )
 
 
-@app.get("/date")
+@router.get("/date")
 def get_current_date():
     """Obtiene la fecha de referencia actual disponible en la SBS."""
     result = service.fetch_rates()
     return {"date": result.data_date.isoformat()}
+
+
+app.include_router(router)
